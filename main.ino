@@ -1,11 +1,17 @@
-#include <DS18B20.h>
+void setup() {
+  // put your setup code here, to run once:
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly#include <DS18B20.h>
 #include <OneWire.h>
 
 #define HIG A0 //pin analog higr
-#define DHIGred 2 //higr dioda czerwona
-#define DHIGyell 3 //higr dioda zolta
-#define TEMP 4
-#define WENT 5
+#define DHIGred 8 //higr dioda czerwona
+#define DHIGyell 9 //higr dioda zolta
+#define TEMP 10
+#define WENT 3
 
 //OBIEKTY klas
 OneWire onewire(TEMP);
@@ -16,10 +22,10 @@ DS18B20 tempSensor(&onewire); //w nawiasie referencja do obiektu onewire klasy O
 byte tempAddress[8] = {0x28, 0xFF, 0x98, 0x3E, 0x2, 0x17, 0x4, 0x30};
 //temp
 float temperature;
-//wentylacja
+//stałe zmienne wentylacji
 float defTemp = 25.1;
 float refDegree = 0.5;
-int wypelnienie;
+
 
 void setup() {
   //TEMPERATURA
@@ -45,16 +51,16 @@ void setup() {
 void loop() {
   //HIGROMETR
   int higr = analogRead(HIG);
-  //test//
+  //serial monitor
   Serial.print("HIGR: ");
   Serial.println(higr);
   delay(1000);
-  //diody stanu nawodnienia
+  //odczyt wilg
   if (higr < 400){ //czerwona dioda
     digitalWrite(DHIGred, HIGH);
     digitalWrite(DHIGyell, LOW);
   }
-  else if ((higr > 400) && (higr < 600)){ //zolta dioda
+  else if ((higr > 400) && (higr < 1000)){ //zolta dioda ---> !!!!! zmienic na 600 !!!!!
     digitalWrite(DHIGred, LOW);
     digitalWrite(DHIGyell, HIGH);
   }
@@ -68,37 +74,28 @@ void loop() {
   if (tempSensor.available()){
     //pobieranie temperatury
     temperature = tempSensor.readTemperature(tempAddress);
-    //test//
+    //wyswietlanie temperatury
     Serial.print("TEMP: ");
     Serial.println(temperature);
     delay(2000);
-    //zadanie pomiaru temperatury
+
     tempSensor.request(tempAddress);
   }
 
   //WENTYLACJA
   if (temperature <= defTemp){
-  wypelnienie = 128;
+  int wypelnienie = 128;
   analogWrite(WENT, wypelnienie);
   }
   else{
-    float tempCompare = temperature - defTemp;
-    int wentIncrease = round(tempCompare/refDegree);
-    wypelnienie = wentIncrease + 128;
-    if (wypelnienie > 255){
-      wypelnienie = 255;    
-      analogWrite(WENT, wypelnienie);
-      //test
-      Serial.print("MOC: ");
-      Serial.println(wypelnienie);
-      delay(3000);
-    }
-    else{
-      analogWrite(WENT, wypelnienie);
-      //test
-      Serial.print("MOC: ");
-      Serial.println(wypelnienie);
-      delay(3000);
-    }
+  float tempCompare = temperature - defTemp;
+  int wentIncrease = round(tempCompare/refDegree);
+  int wypelnienie = wentIncrease + 128;
+  if (wypelnienie > 255){
+    wypelnienie = 255;    
   }
- }
+  analogWrite(WENT, wypelnienie);
+  }
+}
+
+}
