@@ -1,101 +1,75 @@
-void setup() {
-  // put your setup code here, to run once:
-
-}
-
-void loop() {
-  // put your main code here, to run repeatedly#include <DS18B20.h>
+#include <DS18B20.h>
 #include <OneWire.h>
 
 #define HIG A0 //pin analog higr
-#define DHIGred 8 //higr dioda czerwona
-#define DHIGyell 9 //higr dioda zolta
-#define TEMP 10
-#define WENT 3
+#define TEMP 4
+#define WENT 5
+#define WATER 7
 
-//OBIEKTY klas
 OneWire onewire(TEMP);
-DS18B20 tempSensor(&onewire); //w nawiasie referencja do obiektu onewire klasy OneWire
+DS18B20 tempSensor(&onewire);
 
-//ZMIENNE przypisane na sztywno
-//8 elementowa tablica typu byte z adresem czujnika
 byte tempAddress[8] = {0x28, 0xFF, 0x98, 0x3E, 0x2, 0x17, 0x4, 0x30};
-//temp
-float temperature;
-//stałe zmienne wentylacji
-float defTemp = 25.1;
-float refDegree = 0.5;
 
+float defTemp = 25.1;
 
 void setup() {
-  //TEMPERATURA
-  //start tempSensor
-  tempSensor.begin();
-  //zadanie pomiaru temp
-  tempSensor.request(tempAddress);
-  //Serial monitor
   Serial.begin(9600);
   
-  //HIGROMETR
-  //diody deklaracja
-  pinMode(DHIGred, OUTPUT);
-  pinMode(DHIGyell, OUTPUT);
-  //diody stan poczatkowy
-  digitalWrite(DHIGred, LOW);
-  digitalWrite(DHIGyell, LOW);
+  //TEMPERATURA
+  tempSensor.begin();
+  tempSensor.request(tempAddress);
   
   //WENTYLACJA
   pinMode(WENT, OUTPUT);
+  //NAWODNIENIE
+  pinMode(WATER, OUTPUT);
 }
 
 void loop() {
-  //HIGROMETR
-  int higr = analogRead(HIG);
-  //serial monitor
-  Serial.print("HIGR: ");
-  Serial.println(higr);
-  delay(1000);
-  //odczyt wilg
-  if (higr < 400){ //czerwona dioda
-    digitalWrite(DHIGred, HIGH);
-    digitalWrite(DHIGyell, LOW);
-  }
-  else if ((higr > 400) && (higr < 1000)){ //zolta dioda ---> !!!!! zmienic na 600 !!!!!
-    digitalWrite(DHIGred, LOW);
-    digitalWrite(DHIGyell, HIGH);
-  }
-  else{
-    digitalWrite(DHIGred, LOW);
-    digitalWrite(DHIGyell, LOW);
-  }
-
   //TEMPERATURA
-  //sprawdzenie czy czujnik skonczyl pomiar
   if (tempSensor.available()){
-    //pobieranie temperatury
-    temperature = tempSensor.readTemperature(tempAddress);
-    //wyswietlanie temperatury
-    Serial.print("TEMP: ");
-    Serial.println(temperature);
-    delay(2000);
+    float temperature;
 
+    temperature = tempSensor.readTemperature(tempAddress);
     tempSensor.request(tempAddress);
   }
 
   //WENTYLACJA
   if (temperature <= defTemp){
-  int wypelnienie = 128;
-  analogWrite(WENT, wypelnienie);
+  int fill;
+  fill = 128;
+  analogWrite(WENT, fill);
   }
   else{
-  float tempCompare = temperature - defTemp;
-  int wentIncrease = round(tempCompare/refDegree);
-  int wypelnienie = wentIncrease + 128;
-  if (wypelnienie > 255){
-    wypelnienie = 255;    
+    int fill;
+    float tempCompare = temperature - defTemp;
+    int wentIncrease = round(tempCompare*12,75);
+    
+    fill = wentIncrease + 128;
+    if (fill > 255){
+      fill = 255;    
+      analogWrite(WENT, fill);
+    else {
+      analogWrite(WENT, fill);
+    }
+    }
   }
-  analogWrite(WENT, wypelnienie);
-  }
+  //HIGROMETR+POMPA+PRZEKAZNIK
+  int higr = analogRead(HIG);
+  if (higr < 900){
+    digitalWrite(WATER, HIGH);
+    if (higr < 400){
+      delay(1000);
+      digitalWrite(WATER, LOW);
+    }
+    else if (higr > 400 && higr < 850){
+      delay(640);
+      digitalWrite(WATER, LOW);
+    }
+    else if (higr > 850 && higr < 900){
+      delay(200);
+      digitalWrite(WATER, LOW);
+    }
 }
-
-}
+ }
